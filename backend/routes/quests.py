@@ -94,6 +94,15 @@ def list_quests(
 
 @router.post("", response_model=QuestResponse, status_code=201)
 def create_quest(body: QuestCreate, db: Session = Depends(get_db)):
+    # Validate: activate_at must be at least 24h before deadline
+    if body.activate_at and body.deadline:
+        diff = (body.deadline - body.activate_at).total_seconds()
+        if diff < 86400:
+            raise HTTPException(
+                status_code=400,
+                detail="activate_at must be at least 24 hours before deadline",
+            )
+
     # Determine initial status
     if body.status:
         initial_status = body.status
@@ -132,6 +141,18 @@ def update_quest(quest_id: UUID, body: QuestUpdate, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="Quest not found")
 
     update_data = body.model_dump(exclude_unset=True)
+
+    # Validate: activate_at must be at least 24h before deadline
+    new_activate = update_data.get("activate_at", quest.activate_at)
+    new_deadline = update_data.get("deadline", quest.deadline)
+    if new_activate and new_deadline:
+        diff = (new_deadline - new_activate).total_seconds()
+        if diff < 86400:
+            raise HTTPException(
+                status_code=400,
+                detail="activate_at must be at least 24 hours before deadline",
+            )
+
     for field, value in update_data.items():
         setattr(quest, field, value)
 

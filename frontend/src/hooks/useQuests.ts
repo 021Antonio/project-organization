@@ -33,14 +33,14 @@ export function useQuests() {
     load()
   }, [load])
 
-  // Tick scheduled quests every 60s
+  // Tick scheduled quests every 30s and always reload to reflect changes
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const result = await tickQuests()
-        if (result.count > 0) load()
+        await tickQuests()
+        await load()
       } catch {}
-    }, 60000)
+    }, 30000)
     return () => clearInterval(interval)
   }, [load])
 

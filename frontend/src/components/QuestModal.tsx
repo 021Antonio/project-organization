@@ -16,6 +16,7 @@ export default function QuestModal({ open, quest, onClose, onSave }: QuestModalP
   const [deadline, setDeadline] = useState('')
   const [activationMode, setActivationMode] = useState<'now' | 'sched'>('now')
   const [activateAt, setActivateAt] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (quest) {
@@ -56,12 +57,23 @@ export default function QuestModal({ open, quest, onClose, onSave }: QuestModalP
       activate_at: activationMode === 'sched' && activateAt ? new Date(activateAt).toISOString() : null,
     }
 
+    // Validate: activate_at must be at least 24h before deadline
+    if (data.activate_at && data.deadline) {
+      const dlTime = new Date(data.deadline).getTime()
+      const actTime = new Date(data.activate_at).getTime()
+      if (dlTime - actTime < 86400000) {
+        setError('Agendamento deve ser pelo menos 24h antes do deadline')
+        return
+      }
+    }
+
     if (!quest && activationMode === 'sched' && activateAt) {
       data.status = 'scheduled'
     } else if (!quest) {
       data.status = 'active'
     }
 
+    setError('')
     onSave(data)
   }
 
@@ -209,19 +221,26 @@ export default function QuestModal({ open, quest, onClose, onSave }: QuestModalP
         </div>
 
         {/* Modal footer */}
-        <div className="px-3.5 py-2.5 border-t border-[#dce6f8] flex gap-1.5 justify-end bg-[#f8faff]">
-          <button
-            onClick={onClose}
-            className="font-rajdhani text-xs font-semibold px-3.5 py-[5px] border border-[#dce6f8] bg-white text-[#6a8aaf] rounded-sm hover:bg-[#f0f4ff] transition-colors"
-          >
-            CANCELAR
-          </button>
-          <button
-            onClick={handleSave}
-            className="font-rajdhani text-xs font-semibold px-3.5 py-[5px] border border-[#5a80df] bg-[#eaf0ff] text-[#1a3a7f] rounded-sm hover:bg-[#d8e8ff] transition-colors"
-          >
-            SALVAR
-          </button>
+        <div className="px-3.5 py-2.5 border-t border-[#dce6f8] flex flex-col gap-2 bg-[#f8faff]">
+          {error && (
+            <div className="font-mono text-[10px] text-[#8a1a1a] bg-[#ffecec] border border-[#f0a0a0] px-3 py-1.5 rounded-sm">
+              {error}
+            </div>
+          )}
+          <div className="flex gap-1.5 justify-end">
+            <button
+              onClick={onClose}
+              className="font-rajdhani text-xs font-semibold px-3.5 py-[5px] border border-[#dce6f8] bg-white text-[#6a8aaf] rounded-sm hover:bg-[#f0f4ff] transition-colors"
+            >
+              CANCELAR
+            </button>
+            <button
+              onClick={handleSave}
+              className="font-rajdhani text-xs font-semibold px-3.5 py-[5px] border border-[#5a80df] bg-[#eaf0ff] text-[#1a3a7f] rounded-sm hover:bg-[#d8e8ff] transition-colors"
+            >
+              SALVAR
+            </button>
+          </div>
         </div>
       </div>
     </div>
