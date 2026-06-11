@@ -1,8 +1,9 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from jose import jwt, JWTError
 
 from database import create_tables
@@ -18,7 +19,7 @@ app = FastAPI(title="Hunter Planner API", version="1.0.0")
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=[o.strip() for o in cors_origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,7 +29,7 @@ JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALGORITHM = "HS256"
 
 # Public routes that don't need auth
-PUBLIC_PATHS = ["/api/v1/auth/login", "/docs", "/openapi.json", "/redoc"]
+PUBLIC_PATHS = ["/api/v1/auth/login", "/docs", "/openapi.json", "/redoc", "/"]
 
 
 @app.middleware("http")
@@ -43,13 +44,19 @@ async def auth_middleware(request: Request, call_next):
     if path.startswith("/api/"):
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Missing or invalid token")
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Missing or invalid token"},
+            )
 
         token = auth_header.split(" ")[1]
         try:
             jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         except JWTError:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid or expired token"},
+            )
 
     return await call_next(request)
 
@@ -60,9 +67,8 @@ app.include_router(quests_router)
 app.include_router(player_router)
 
 
-@app.on_event("startup")
-def on_startup():
-    create_tables()
+# Create tables on startup
+create_tables()
 
 
 @app.get("/")
