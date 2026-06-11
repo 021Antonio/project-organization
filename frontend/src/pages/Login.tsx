@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl
 
 export default function Login() {
   const [password, setPassword] = useState('')
